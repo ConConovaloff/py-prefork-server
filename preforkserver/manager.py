@@ -164,15 +164,18 @@ class Manager(object):
         completion in a thread.
         """
         fd = child.conn.fileno()
+
+        try:
+            self._poll.unregister(child.conn)
+        except:
+            pass
+
         try:
             child.conn.send([pfe.CLOSE, ''])
             child.close()
         except IOError:
             pass
-        try:
-            self._poll.unregister(child.conn)
-        except:
-            pass
+
         if fd in self._children:
             del self._children[fd]
         if background:
@@ -221,7 +224,7 @@ class Manager(object):
             # We have too many spares and need to kill some
             to_kill = spares - self.max_spares
             children = sorted(children,
-                cmp=lambda x, y: cmp(x.totalProcessed, y.totalProcessed),
+                cmp=lambda x, y: cmp(x.total_processed, y.total_processed),
                 reverse=True)
             # Send closes
             for ch in children[:to_kill]:
