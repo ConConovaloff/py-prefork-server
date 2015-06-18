@@ -115,7 +115,8 @@ class Manager(object):
             raise ManagerError('Invalid protocol %s, must be in: %r' %
                 (protocol, self.validProtocols))
         self.listen = int(listen)
-        self.reuse_port = reuse_port and hasattr(socket , 'SO_REUSEPORT')
+        self.reuse_port_parent = reuse_port and hasattr(socket, 'SO_REUSEPORT')
+        self.reuse_port = False  # may use in child, only if child asynchronously execute code
         self.server_socket = None
         self._stop = threading.Event()
         self._children = {}
@@ -250,6 +251,9 @@ class Manager(object):
             protocol = socket.SOCK_DGRAM
         self.server_socket = socket.socket(socket.AF_INET, protocol)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        if self.reuse_port_parent:
+            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.server_socket.bind(address)
         if self.protocol == 'tcp':
             self.server_socket.listen(self.listen)
